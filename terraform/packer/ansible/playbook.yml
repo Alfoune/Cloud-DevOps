@@ -1,0 +1,45 @@
+---
+- name: Installer l'application et OpsAgent
+  hosts: all
+  become: yes
+  tasks:
+    - name: Installer les dépendances
+      apt:
+        name:
+          - curl
+          - unzip
+        state: present
+
+    - name: Télécharger et installer l'OpsAgent
+      shell: |
+        curl -sSO https://dl.google.com/cloudagents/add-google-cloud-ops-agent-repo.sh
+        sudo bash add-google-cloud-ops-agent-repo.sh --also-install
+      become: yes
+    - name: Copier l'application Go
+      copy:
+        src: /chemin/local/vers/le/binaire-go
+        dest: /usr/local/bin/myapp
+        mode: '0755'
+
+    - name: Créer un service systemd
+      copy:
+        dest: /etc/systemd/system/myapp.service
+        content: |
+          [Unit]
+          Description=My Go App
+          After=network.target
+
+          [Service]
+          ExecStart=/usr/local/bin/myapp
+          Restart=always
+          User=root
+
+          [Install]
+          WantedBy=multi-user.target
+
+    - name: Activer et démarrer le service
+      systemd:
+        name: myapp
+        enabled: yes
+        state: started
+
